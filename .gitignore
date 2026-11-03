@@ -7,3 +7,7 @@ dist/
 original/
 extracted/
 reference/mac/
+
+# Build output copied to the repo root; distributed via GitHub Releases instead
+ToneLab SE Editor.app/
+.DS_Store

@@ -2,6 +2,10 @@
 
 This is an editor and librarian for the **VOX ToneLab SE**. It replaces Korg's *ToneLabSE SoundEditor* (2004), whose PowerPC Mac version no longer runs on current Macs. It was rebuilt from the original Windows program and Korg's own MIDI specification, and runs natively on Apple Silicon.
 
+![The VOX ToneLab SE](voxtonelabse.jpg)
+
+![The editor connected to the pedal, editing program 15-1 TWEED](se-edit.jpg)
+
 It does what the original did:
 
 - **Edit window:** every amp, cabinet, pedal, modulation, delay and reverb parameter, the chain, the control pedal and both expression pedals. Edits are sent to the pedal live, and knob moves on the pedal show up in the editor.
@@ -87,3 +91,11 @@ Some tests check against Korg's factory preset files, and are skipped when those
   - `docs/protocol.md`: the editor's MIDI flows (startup, echo suppression, ACK handling, write).
   - `docs/files-global.md`: the global layout, the file container, and the ToneLab → SE conversion.
 - **Official spec:** Korg's own MIDI implementation (`reference/docs/tonelabse_midi.pdf`) was found partway through. It confirmed the reverse-engineered findings and filled in the value tables.
+
+## License
+
+This editor exists so that people who own a ToneLab SE can keep using it. Korg's original SoundEditor is defunct and no longer runs on current Macs, and this project was reverse engineered from it to fill that gap. It is licensed for personal use accordingly.
+
+Free for personal, hobby, research, educational and other non-commercial use under the [PolyForm Noncommercial License 1.0.0](LICENSE). Commercial use is not permitted without a separate agreement from the author.
+
+VOX, ToneLab and Valvetronix are trademarks of Korg Inc. This project is not affiliated with or endorsed by Korg or VOX.

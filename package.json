@@ -5,6 +5,7 @@
   "description": "Editor/librarian for the VOX ToneLab SE, rebuilt from the original Korg SoundEditor for modern macOS (Apple Silicon).",
   "main": "electron/main.js",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
     "start": "electron .",
     "test": "node tests/run.js",
