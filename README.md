@@ -23,7 +23,17 @@ It does what the original did:
 
 You need a USB-MIDI interface, with MIDI cables to the ToneLab SE's MIDI IN and OUT.
 
-### Option A: build the app (recommended)
+### Option A: download the app (Apple Silicon)
+
+1. Download the zip from the [latest release](https://github.com/alienbrainfarm/voxtonelabse-edit/releases/latest) and unzip it.
+2. Drag `ToneLab SE Editor.app` into `/Applications`.
+3. The app is ad-hoc signed, not notarised, so macOS blocks it the first time. Open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**. Or, in Terminal:
+
+   ```bash
+   xattr -d com.apple.quarantine "/Applications/ToneLab SE Editor.app"
+   ```
+
+### Option B: build the app (Intel Macs, or to build from source)
 
 1. Install Node.js from <https://nodejs.org> (LTS), or with `brew install node`.
 2. In Terminal, run:
@@ -38,7 +48,7 @@ You need a USB-MIDI interface, with MIDI cables to the ToneLab SE's MIDI IN and 
 
 The script builds an Apple Silicon (arm64) app, or an Intel one on an Intel Mac. It gives the app an ad-hoc code signature so macOS will run it.
 
-### Option B: no install
+### Option C: no install
 
 Open `app/index.html` in **Google Chrome** or **Microsoft Edge**, and allow MIDI access when asked. Safari has no Web MIDI, so it won't work there.
 
