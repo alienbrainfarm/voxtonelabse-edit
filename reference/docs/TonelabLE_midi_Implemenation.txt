@@ -1,0 +1,1159 @@
+VOX ToneLabLE MIDI IMPLEMENTATION                             Version 1.0 (January 1, 2007)
+
+
+[VOX Valvetronix]                                                          Date: 2007.1.1
+
+
+ Model : ToneLabLE             MIDI Implementation Chart                     Version:1.00
++----------------------------+------------+------------+--------------------------------+
+|           Function         | Transmitted| Recognized |           Remarks              |
++----------------------------+------------+------------+--------------------------------+
+|Basic           Default     |    1-16    |    1-16    | Memorized                      |
+|Channel         Changed     |    1-16    |    1-16    |                                |
++----------------------------+------------+------------+--------------------------------+
+|Mode            Memorized   |     ~     |     3      |                                |
+|                Messages    |     ~     |     ~     |                                |
+|                Altered     |  ********  |     ~     |                                |
++----------------------------+------------+------------+--------------------------------+
+|Note                        |     ~     |     ~     |                                |
+|Number :        True Voice  |  ********  |  ********  |                                |
++----------------------------+------------+------------+--------------------------------+
+|Velocity        Note On     |     ~     |     ~     |                                |
+|                Note Off    |     ~     |     ~     |                                |
++----------------------------+------------+------------+--------------------------------+
+|Aftertouch  Polyphonic(Key) |     ~     |     ~     |                                |
+|      @ Monophonic(Channel)|     ~     |     ~     |                                |
++----------------------------+------------+------------+--------------------------------+
+|Pitch Bend                  |     ~     |     ~     |                                |
++----------------------------+------------+------------+--------------------------------+
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|Control                0-95 |     ›     |     ›     |Effect Control             *C*1 |
+|Change                      |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
+|                            |            |            |                                |
++----------------------------+------------+------------+--------------------------------+
+|Program                     |  › 0-119  |  › 0-119  |                             *P |
+|Change       Variable Range |  ********  |     0-119  |                                | 
++----------------------------+------------+------------+--------------------------------+
+|System Exclusive            |     ›     |     ›     |Parameter Control          *E*1 |
+|                            |            |            |Program Data Dump               |
++----------------------------+------------+------------+--------------------------------+
+|System      : Song Position |     ~     |     ~     |                                |
+|Common      : Song Select   |     ~     |     ~     |                                |
+|@          : Tune          |     ~     |     ~     |                                |
++----------------------------+------------+------------+--------------------------------+
+|System      : Clock         |     ~     |     ~     |                                |
+|Real Time   : Command       |     ~     |     ~     |                                |
++----------------------------+------------+------------+--------------------------------+
+|Aux         : Loacl On/Off  |     ~     |     ~     |                                |
+|Message     : All Note Off  |     ~     |     ~     |                                |
+|            : Active Sense  |     ~     |     ~     |                                |
+|            ; Reset         |     ~     |     ~     |                                |
++----------------------------+------------+------------+--------------------------------+
+|Notes                                                                                  |
+|*P : Transmitted if GLOBAL "PCHG OUT" is On.                                           |
+|*C : Transmitted and received according to the setting of each controller if GLOBAL    |
+|     "CCHG I/O" is On.                                                                 |
+|*E : Transmitted and received if GLOBAL "SYEX OUT" is On. (Responses to Request        |
+|     messages are always transmitted regardless of the "SYSEX OUT" setting.)           |
+|*1 : In additon to messages specifically for this device, Device Inquiry is also       |
+|     supported.                                                                        |
+|*2 : "AMP CTRL" and "CAB CTRL" are recieve only.                                       |
++---------------------------------------------------------------------------------------+
+
+
+
+
+1.TRANSMITTED DATA
+
+1-1 CHANNEL MESSAGES            [H]:Hex,  [D]:Decimal
++--------+---------+---------+---------------------------------------------------+---+
+| Status | Second  |  Third  |      Description                (Transmitted by ) |ENA|
+|  [Hex] | [H] [D] | [H] [D] |                                                   |   |
++--------+---------+---------+---------------------------------------------------+---+
+|   Bn   | cc (cc) | vv (vv) | Control Change cc=00~5F(00~95)  (Pedal Control)   | C |
+|   Cn   | pp (pp) | --  --  | Program Change pp=00~5F(00~95)  (Program Change)  | P |
++--------+---------+---------+---------------------------------------------------+---+
+
+ n  : MIDI Channel (0~F)
+ vv : Value
+
+ ENA = C : Enabled when "CCHG I/O" Global Parameter is "On".
+       P : Enabled when "PCHG OUT" Global Parameter is "On".
+
+
+1-2 UNIVERSAL SYSTEM EXCLUSIVE MESSAGE
+
+ DEVICE INQUIRY REPLY
++--------+-----------------------------------------------+
+|  Byte  |               Description                     |
+|  [Hex] |                                               |
++--------+-----------------------------------------------+
+|   F0   | Exclusive Status                              |
+|   7E   | Non Realtime Message                          |
+|   0n   | Device ID (MIDI Channel)                      |
+|   06   | Inquiry Message                               |
+|   02   | Identity reply                                |
+|   42   | KORG ID                  ( Manufacturers ID ) |
+|   6D   | VOX Digital Products ID  ( Family ID   (LSB)) |
+|   00   |                          ( Family ID   (MSB)) |
+|   10   | ToneLabLE ID             ( Member ID   (LSB)) |
+|   00   |                          ( Member ID   (MSB)) |
+|   vv   | 00~                      ( Minor Ver.  (LSB)) |
+|   00   |                          ( Minor Ver.  (MSB)) |
+|   vv   | 01~                      ( Major Ver.  (LSB)) |
+|   00   |                          ( Major Ver.  (MSB)) |
+|   F7   | End of Exclusive                              |
++--------+-----------------------------------------------+
+
+  This message is transmitted whenever a INQUIRY MESSAGE REQUEST is received.
+
+
+1-3 KORG SYSTEM EXCLUSIVE MESSAGE
++--------+----------------------------------+
+|  Byte  |          Description             |
+|  [Hex] |                                  |
++--------+----------------------------------+
+|   F0   | Exclusive Status                 |
+|   42   | KORG ID                          |
+|   3n   | Format ID (n: MIDI Channel)      |
+|   6D   | VOX Digital Products ID          |
+|   10   | ToneLabLE ID                     |
+|   ff   | Function Code                    |
+|  (dd)  | Data                             |
+|   F7   | End of Exclusive                 |
++--------+----------------------------------+
+
+  See 3.KORG SYSTEM EXCLUSIVE MESSAGE FORMAT for more info.
+
+
+2. RECOGNIZED RECEIVE DATA
+
+2-1 CHANNEL MESSAGES            [H]:Hex,  [D]:Decimal
++--------+---------+---------+------------------------------------------------------+---+
+| Status | Second  |  Third  |      Description                (Used .....)         |ENA|
+|  [Hex] | [H] [D] | [H] [D] |                                                      |   |
++--------+---------+---------+------------------------------------------------------+---+
+|   Bn   | cc (cc) | vv (vv) | Control Change cc=00~5F(00~95)  (as the same as PdC) | C |
+|   Cn   | pp (pp) | --  --  | Program Change pp=00~5F(00~95)  (for Prog Change)    | P |
++--------+---------+---------+------------------------------------------------------+---+
+
+ n  : MIDI Channel (0~F)
+ vv : Value
+
+ PdC : Pedal Control
+
+ ENA = C : Enabled when "CCHG I/O" Global Parameter is "On".
+       P : Enabled when Program Select Mode.
+
+
+2-2 UNIVERSAL SYSTEM EXCLUSIVE MESSAGE
+
+ DEVICE INQUIRY MESSAGE REQUEST
++--------+----------------------+
+|  Byte  |     Description      |
+|  [Hex] |                      |
++--------+----------------------+
+|   F0   | Exclusive Status     |
+|   7E   | Non Realtime Message |
+|   nn   | Device ID            |
+|   06   | Inquiry Message      |
+|   01   | Inquiry Request      |
+|   F7   | End of Exclusive     |
++--------+----------------------+
+
+ nn = 00 ~ 0F :MIDI Channel
+    = 7F      :Any Channel
+
+
+2-3 KORG SYSTEM EXCLUSIVE MESSAGE
++--------+----------------------------------+
+|  Byte  |          Description             |
+|  [Hex] |                                  |
++--------+----------------------------------+
+|   F0   | Exclusive Status                 |
+|   42   | KORG ID                          |
+|   3n   | Format ID (n: MIDI Channel)      |
+|   6D   | VOX Digital Products ID          |
+|   10   | ToneLabLE ID                     |
+|   ff   | Function Code                    |
+|  (dd)  | Data                             |
+|   F7   | End of Exclusive                 |
++--------+----------------------------------+
+
+  See 3.KORG SYSTEM EXCLUSIVE MESSAGE FORMAT for more info.
+
+
+3.KORG SYSTEM EXCLUSIVE MESSAGE FORMAT
+
+ Function Code List (R:Receive, T:Transmit)
++--------+-------------------------------------------+-----+-----------+
+|  Func  |              Description                  |  R  |     T     |
+|  [Hex] |                                           |     | (*1) (*2) |
++--------+-------------------------------------------+-----+-----+-----+
+|   12   | MODE REQUEST                              |  o  |     |     |
+|   10   | CURRENT PROGRAM PARAMETER DUMP REQUEST    |  o  |     |     |
+|   1C   | PROGRAM PARAMETER DUMP REQUEST            |  o  |     |     |
+|   0E   | GLOBAL DATA DUMP REQUEST                  |  o  |     |     |
+|   0F   | ALL DATA (PROGRAM,GLOBAL) DUMP REQUEST    |  o  |     |     |
+|   11   | PROGRAM WRITE REQUEST                     |  o  |     |     |
+|        |                                           |     |     |     |
+|   40   | CURRENT PROGRAM PARAMETER DUMP            |  o  | r,D |     |
+|   4C   | PROGRAM PARAMETER DUMP                    |  o  | r   |     |
+|   51   | GLOBAL DATA DUMP                          |  o  | r   |     |
+|   50   | ALL DATA (PROGRAM,GLOBAL) DUMP            |  o  | r,D |     |
+|        |                                           |     |     |     |
+|   4E   | MODE CHANGE                               |  o  |     |  M  |
+|   41   | PARAMETER CHANGE                          |  o  |     |  C  |
+|        |                                           |     |     |     |
+|   42   | MODE DATA                                 |     |  r  |     |
+|        |                                           |     |     |     |
+|   26   | DATA FORMAT ERROR                         |     |  E  |     |
+|   23   | DATA LOAD COMPLETED                       |     |  E  |     |
+|   24   | DATA LOAD ERROR                           |     |  E  |     |
+|   21   | WRITE COMPLETED                           |     |  E  |  W  |
+|   22   | WRITE ERROR                               |     |  E  |     |
++--------+-------------------------------------------+-----+-----+-----+
+
+ *1 : Transmitted when
+      r  : Request message is received.
+      E  : Exclusive message is received.
+      D  : DATA DUMP is executed by Switch.
+
+ *2 : Transmitted when "SYEX OUT" Global Parameter is "On" and
+      M  : Mode or Program is changed by Switch.
+      C  : Parameter is changed by Switch or Knob.
+      W  : DATA WRITE by Switch is completed.
+
+
+(1) MODE REQUEST                                                        R
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 12             | Function Code                                         |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message, and transmits Func=42 message.
+
+
+(2) CURRENT PROGRAM PARAMETER DUMP REQUEST                              R
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 10             | Function Code                                         |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message, and transmits Func=40 or Func=24 message.
+
+
+(3) PROGRAM PARAMETER DUMP REQUEST                                      R
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 1C             | Function Code                                         |
+| 00k0 0000      | Kind                                         (NOTE 7) |
+| 0ppp pppp      | Program No.                                           |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message, and transmits Func=4C or Func=24 message.
+
+
+(4) GLOBAL DATA DUMP REQUEST                                            R
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 0E             | Function Code                                         |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message, and transmits Func=51 or Func=24 message.
+
+
+(5) ALL DATA (PROGRAM,GLOBAL) DUMP REQUEST                              R
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 0F             | Function Code                                         |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message, and transmits Func=50 or Func=24 message.
+
+
+(6) PROGRAM WRITE REQUEST                                               R
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 11             | Function Code                                         |
+| 00             | (Reserved)                                            |
+| 0ppp pppp      | Destination Program No.                               |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message, write the data and transmits Func=21 or Func=22 message.
+
+
+(7) CURRENT PROGRAM PARAMETER DUMP                                  R , T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 40             | Function Code                                         |
+| 0ddd dddd      | Data                                         (NOTE 1) |
+|  :             |  :                                                    |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message & data, saves them to Current Buffer and transmits Func=23 or Func=24 message.
+ Receives Func=10 message, and transmits this message & data.
+ Transmits this message & data when DATA DUMP is executed.
+
+
+(8) PROGRAM PARAMETER DUMP                                          R , T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 4C             | Function Code                                         |
+| 00k0 0000      | Kind                                         (NOTE 7) |
+| 0ppp pppp      | Program No.                                           |
+| 0ddd dddd      | Data                                       (NOTE 2,3) |
+|  :             |  :                                                    |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message & data, saves them to Internal Memory and transmits Func=23 or Func=24 message.
+ Receives Func=1C message, and transmits this message & data.
+
+
+(9) GLOBAL DATA DUMP                                                R , T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 51             | Function Code                                         |
+| 0ddd dddd      | Data                                         (NOTE 4) |
+|  :             |  :                                                    |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message & data, saves them to Internal Memory and transmits Func=23 or Func=24 message.
+ Receives Func=0E message, and transmits this message & data.
+
+
+(10) ALL DATA (PROGRAM,GLOBAL) DUMP                                 R , T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 50             | Function Code                                         |
+| 0ddd dddd      | Data                                         (NOTE 5) |
+|  :             |  :                                                    |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message & data, saves them to Internal Memory and transmits Func=23 or Func=24 message.
+ Receives Func=0F message, and transmits this message & data.
+ Transmits this message & data when DATA DUMP is executed.
+
+
+(11) MODE CHANGE                                                    R , T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 4E             | Function Code                                         |
+| 0moo 0000      | Mode and Option                              (NOTE 6) |
+| 0ppp pppp      | Program No.                                           |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message & data, changes the Mode and transmits Func=23 or Func=24.
+ When the Mode or Program is changed by Switch, transmits this message & data.
+
+
+(12) PARAMETER CHANGE                                               R , T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 41             | Function Code                                         |
+| 0ppp ppp       | Parameter ID                                (TABLE 1) |
+| 0sss sss       | Parameter SUB ID                            (TABLE 1) |
+| 0vvv vvv       | Value (MSB bit13~7)                                   |
+| 0vvv vvv       | Value (LSB bit 6~0)                                   |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives this message & data, changes a Parameter and transmits Func=23 or Func=24 message.
+ When the Parameter is changed by Switch & Knob, transmits this message & data.
+
+
+(13) MODE DATA                                                          T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 42             | Function Code                                         |
+| 0m00 0000      | Mode                                         (NOTE 6) |
+| 0ppp pppp      | Program No.                                           |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Receives Func=12 message, and transmits this message & data.
+
+
+(14) DATA FORMAT ERROR                                                  T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 26             | Function Code                                         |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Transmits this message when there is an error in the MIDI IN message.
+
+
+(15) DATA LOAD COMPLETED (ACK)                                          T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 23             | Function Code                                         |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Transmits this message when DATA LOAD, PROCESSING have been completed.
+
+
+(16) DATA LOAD ERROR (NAK)                                              T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 24             | Function Code                                         |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Transmits this message when DATA LOAD, PROCESSING have not been completed.
+
+
+(17) WRITE COMPLETED                                                    T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 21             | Function Code                                         |
+| 00             | (Reserved)                                            |
+| 0ppp pppp      | Destination Program No.                               |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Transmits this message when DATA WRITE has been completed.
+
+
+(18) WRITE ERROR                                                        T
++----------------+-------------------------------------------------------+
+|      Byte      |                   Description                         |
++----------------+-------------------------------------------------------+
+| F0,42,3n,6D,10 | Exclusive Header                                      |
+| 22             | Function Code                                         |
+| 00             | (Reserved)                                            |
+| 0ppp pppp      | Destination Program No.                               |
+| F7             | End of Exclusive                                      |
++----------------+-------------------------------------------------------+
+ Transmits this message when DATA WRITE MIDI has not been completed.
+
+
+
+ NOTE 1: CURRENT PROGRAM PARAMETER (in Current Buffer) DUMP FORMAT
+         92Bytes        = 7*13+1    -> 8*13+(1+1)   => 106Bytes
+         (TABLE 1)
+
+ NOTE 2: PROGRAM PARAMETER (in Internal Memory) DUMP FORMAT (1 Program)
+         Same as CURRENT PROGRAM PARAMTER DUMP FORMAT.
+
+ NOTE 3: PROGRAM PARAMETER (in Internal Memory) DUMP FORMAT (All Program)
+         [Prog 1-1(92Bytes)],....,[Prog 24-4(92Bytes)]
+         92*96Bytes     = 7*1261+5  -> 8*1261+(1+5) => 10094Bytes
+
+ NOTE 4: GLOBAL DATA (in Internal Memory) DUMP FORMAT
+         16Bytes        = 7*2+2     -> 8*2+(1+2)    => 19Bytes
+         (TABLE 2)
+
+ NOTE 5: ALL DATA (in Internal Memory) DUMP FORMAT
+         [Prog 1-1(92Bytes)],....,[Prog 24-4(92Bytes)],[dummy(92bytes)],[Global Data].
+         92*97+16Bytes  = 7*1277+1  -> 8*1277+(1+1) => 10218Bytes
+
+ NOTE 6: oo = 00 : Mode and Program Change    (Use m,p)
+              01 : Mode Change Only           (Use m)
+              10 : Program Change Only        (Use p)
+
+         m = 0 : Program Select Mode
+             1 : Fx On/Off Mode
+
+ NOTE 7: k = 0 : All Program
+             1 : 1 Program                    (Use p)
+
+ NOTE 8: DUMP DATA CONVERSION
+
+     DATA ( 1set = 8bit x 7Byte )
+     b7     ~      b0   b7     ~      b0   b7   ~~    b0   b7     ~      b0
+     +-+-+-+-+-+-+-+-+  +-+-+-+-+-+-+-+-+  +-+-+-~~-+-+-+  +-+-+-+-+-+-+-+-+
+     | | | | | | | | |  | | | | | | | | |  | | |    | | |  | | | | | | | | |
+     +-+-+-+-+-+-+-+-+  +-+-+-+-+-+-+-+-+  +-+-+-~~-+-+-+  +-+-+-+-+-+-+-+-+
+           7n+0               7n+1          7n+2 ~~ 7n+5         7n+6
+
+      MIDI DATA ( 1set = 7bit x 8Byte )
+        b7b7b7b7b7b7b7     b6    ~     b0     b6 ~~    b0     b6    ~     b0
+     +-+-+-+-+-+-+-+-+  +-+-+-+-+-+-+-+-+  +-+-+-~~-+-+-+  +-+-+-+-+-+-+-+-+
+     |0| | | | | | | |  |0| | | | | | | |  |0| |    | | |  |0| | | | | | | |
+     +-+-+-+-+-+-+-+-+  +-+-+-+-+-+-+-+-+  +-+-+-~~-+-+-+  +-+-+-+-+-+-+-+-+
+     7n+6,5,4,3,2,1,0         7n+0          7n+1 ~~ 7n+5         7n+6
+
+
+
+[ TABLE 1 ]  PROGRAM PARAMETERS
+
+ No.       : Address in the PROGRAM DUMP DATA.
+ PARA No.  : Parameter ID, SUB ID for PARAMETER CHANGE.
++---------+-----------------------+---------+--------------------------------+---------+
+| No.     |  PARAMETER            |  DATA   |  VALUE                         | PARA No.|
+| [Dec]   |                       |  [Hex]  |                                |  [Hex]  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 00      |  PROGRAM NAME (1st)   |         |                                |  00,00  |
+|  :      |          :            |  20~5F  |  ASCII code ' ' ~ '_'          |    :    |
+| 07      |  PROGRAM NAME (8th)   |         |                                |  00,07  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 08      |  PROGRAM LEVEL        |         |                                |  01,00  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 09      |  NR SENS              |         |                                |  01,01  |
++---------+-----------------------+---------+--------------------------------+---------+
+|    EFFECT STATUS                                                                     |
++---------+-----------------------+---------+--------------------------------+---------+
+| 10  b0  |  PEDAL                |  00,01  |  Off,On                        |  02,00  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b1  |  MODULATION           |  00,01  |  Off,On                        |  02,01  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b2  |  DELAY                |  00,01  |  Off,On                        |  02,02  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b3  |  REVERB               |  00,01  |  Off,On                        |  02,03  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b4  |  AMP                  |  00,01  |  Off,On                        |  02,04  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b5  |  CABINET              |  00,01  |  Off,On                        |  02,05  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b6  |      (Reserved)       |         |                                |         |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b7  |  INSERT               |  00,01  |  Off,On                        |  02,07  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 11      |  CHAIN                |  00~05  |  M-D-R ~ R-D-M                 |  02,10  |
++---------+-----------------------+---------+--------------------------------+---------+
+|    PEDAL EFFECT PARAMETERS                                                           |
++---------+-----------------------+---------+--------------------------------+---------+
+| 12      |  Effect Type          |  00~0F  |  COMP ~            (TABLE 1-1) |  03,00  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 13      |                                                                  |  04,??  |
+|  :      |  Parameter Structure ( TABLE 1-1 )                               |    :    |
+| 18      |                                                                  |  04,??  |
++---------+------------------------------------------------------------------+---------+
+|    MODULATION EFFECT PARAMETERS                                                      |
++---------+-----------------------+---------+--------------------------------+---------+
+| 19      |  Effect Type          |  00~0A  |  CLASSIC CHORUS ~  (TABLE 1-2) |  03,01  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 20      |                                                                  |  05,??  |
+|  :      |  Parameter Structure ( TABLE 1-2 )                               |    :    |
+| 25      |                                                                  |  05,??  |
++---------+------------------------------------------------------------------+---------+
+|    DELAY EFFECT PARAMETERS                                                           |
++---------+-----------------------+---------+--------------------------------+---------+
+| 26      |  Effect Type          |  00~0A  |  ECHO PLUS ~       (TABLE 1-3) |  03,02  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 27      |                                                                  |  06,??  |
+|  :      |  Parameter Structure ( TABLE 1-3 )                               |    :    |
+| 33      |                                                                  |  06,??  |
++---------+------------------------------------------------------------------+---------+
+|    REVERB EFFECT PARAMETERS                                                          |
++---------+-----------------------+---------+--------------------------------+---------+
+| 34      |  Effect Type          |  00~0A  |  SLAP ~            (TABLE 1-4) |  03,03  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 35      |                                                                  |  07,??  |
+|  :      |  Parameter Structure ( TABLE 1-4 )                               |    :    |
+| 40      |                                                                  |  07,??  |
++---------+------------------------------------------------------------------+---------+
+|    AMP PARAMETERS                                                                    |
++---------+-----------------------+---------+--------------------------------+---------+
+| 41      |  AMP Type             |  00~0F  |  AC15 ~            (TABLE 1-5) |  03,04  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 42      |  GAIN                 |  00~64  |  0.0~10.0                      |  08,00  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 43      |  VR GAIN              |  00~64  |  0.0~10.0                      |  08,01  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 44      |  TREBLE               |  00~64  |  0.0~10.0                      |  08,02  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 45      |  MIDDLE               |  00~64  |  0.0~10.0                      |  08,03  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 46      |  BASS                 |  00~64  |  0.0~10.0                      |  08,04  |
++---------+-----------------------+---------+--------------------------------+---------+
+| 47      |  CH VOLUME            |  00~64  |  0.0~10.0                      |  08,05  |
++---------+------------------------------------------------------------------+---------+
+| 48      |  PRESENCE             |  00~64  |  0.0~10.0                      |  08,06  |
++---------+-----------------------+---------+--------------------------------+---------+
+|    CABINET PARAMETERS                                                                |
++---------+-----------------------+---------+--------------------------------+---------+
+| 49      |  CABINET Type         |  00~0A  |  TWEED 1x8 ~       (TABLE 1-6) |  03,05  |
++---------+-----------------------+---------+--------------------------------+---------+
+|    EXPRESSION PEDAL 1                                                                |
++---------+-----------------------+---------+--------------------------------+---------+
+| 50  b0~5|  Target               |         |            (TABLE 1-1~1-4,1-7) |  0C,00  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b6,7|      (Reserved)       |         |                                |         |
++---------+-----------------------+---------+--------------------------------+---------+
+| 51~52   |  Target Range (MIN)   |         |            (TABLE 1-1~1-4,1-7) |  0C,01  |
++---------+-----------------------+------------------------------------------+---------+
+| 53~54   |  Target Range (MAX)   |         |            (TABLE 1-1~1-4,1-7) |  0C,02  |
++---------+-----------------------+---------+--------------------------------+---------+
+|    CONTROL PEDAL                                                                     |
++---------+-----------------------+---------+--------------------------------+---------+
+| 55  b0~5|  Target               |  00~0B  |                    (TABLE 1-8) |  0E,00  |
+|    -----+-----------------------+---------+--------------------------------+---------+
+|     b6,7|      (Reserved)       |         |                                |         |
++---------+-----------------------+---------+--------------------------------+---------+
+| 56      |  FACTOR               |  00~0B  |  1/6~4                    (*3) |  0E,01  |
++---------+-----------------------+------------------------------------------+---------+
+| 57~91   |      (Reserved)       |         |                                |         |
++---------+-----------------------+---------+--------------------------------+---------+
+
+
+
+[ TABLE 1-1 ]  PEDAL EFFECT Parameter Structure                          +----------------------+
+                                                                         |  Expression Target   |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| Offset  |  PARAMETER  |  DATA   |  VALUE                  | PARA No.|  |  DATA    |  VALUE    |
+| [Dec]   |             |  [Hex]  |                         |  [Hex]  |  |  [BIN]   |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 00 : COMP                                          |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SENS       |  00~5A  |  1.0~10.0               |  04,00  |  |  001000  |  P/SENS   |
+| 01      |  LEVEL      |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/LEVEL  |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 01 : ACOUSTIC                                      |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  BODY       |  00~64  |  0.0~10.0               |  04,00  |  |  001000  |  P/BODY   |
+| 01      |  BASS       |  00~64  |  1.0~10.0               |  04,01  |  |  001001  |  P/BASS   |
+| 02      |  TREBLE     |  00~64  |  1.0~10.0               |  04,02  |  |  001010  |  P/TREBLE |
+|         |             |         |                         |         |  |          |           |
+| 04      |  TYPE       |  00~03  |  1,2,3,4                |  04,04  |  |          |           |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 02 : VOX WAH                                       |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|         |             |         |                         |         |  |          |           |
+| 01      |  CLOSE      |  00~5A  |  1.0~10.0               |  04,01  |  |          |           |
+| 02      |  OPEN       |  00~5A  |  1.0~10.0               |  04,02  |  |          |           |
+| 03      |  MANUAL     |  00~5A  |  1.0~10.0               |  04,03  |  |  001000  |  P/MANUAL |
+| 04      |  TYPE       |  00,01  |  V847,V848              |  04,04  |  |          |           |
+| 05      |  ORDER      |  00,01  |  PRE,POST               |  04,05  |  |          |           |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 03 : U-VIBE                                        |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED      |  32~64  |  1.0~10.0 [Hz]     (*4) |  04,00  |  |  001000  |  P/SPEED  |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/DEPTH  |
+| 02      |  MIX        |  00~64  |  0.0~10.0               |  04,02  |  |          |           |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 04 : BLK/ORG PHASE                                 |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED      |  00~64  |  0.1~10.0 [Hz]     (*4) |  04,00  |  |  001000  |  P/SPEED  |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/DEPTH  |
+| 02      |  RESONANCE  |  00~64  |  0.0~10.0               |  04,02  |  |  001010  |  P/RESO   |
+| 03      |  MANUAL     |  00~5A  |  1.0~10.0               |  04,03  |  |  001011  |  P/MANUAL |
+| 04      |  TYPE       |  00~02  |  BLK,ORG1,ORG2          |  04,04  |  |          |           |
+| 05      |  ORDER      |  00,01  |  PRE,POST               |  04,05  |  |          |           |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 05 : OCTAVE                                        |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  DIRECT     |  00~64  |  0.0~10.0               |  04,00  |  |  001000  |  P/DIRECT |
+| 01      |  1 OCTAVE   |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/1OCT   |
+| 02      |  2 OCTAVE   |  00~64  |  0.0~10.0               |  04,02  |  |  001010  |  P/2OCT   |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 06 : RING MODULATOR                                |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  DIRECT     |  00~64  |  0.0~10.0               |  04,00  |  |  001000  |  P/DIRECT |
+| 01      |  EFFECT     |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/EFFECT |
+| 02      |  FILTER     |  00~5A  |  1.0~10.0               |  04,02  |  |  001010  |  P/FILTER |
+| 03      |  MANUAL     |  00~64  |  0.0~10.0               |  04,03  |  |  001011  |  P/MANUAL |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 07 : TREBLE BOOST                                  |  |                      |
+|    Effect Type = 08 : TUBE OD                                       |  |                      |
+|    Effect Type = 09 : SUPER OD                                      |  |                      |
+|    Effect Type = 0A : BOUTIQUE                                      |  |                      |
+|    Effect Type = 0B : FAT DIST                                      |  |                      |
+|    Effect Type = 0C : ORANGE DIST                                   |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  DRIVE      |  00~5A  |  1.0~10.0               |  04,00  |  |  001000  |  P/DRIVE  |
+| 01      |  LEVEL      |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/LEVEL  |
+| 02      |  TONE       |  00~5A  |  1.0~10.0               |  04,02  |  |  001010  |  P/TONE   |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 0D : METAL DIST                                    |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  DRIVE      |  00~5A  |  1.0~10.0               |  04,00  |  |  001000  |  P/DRIVE  |
+| 01      |  LEVEL      |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/LEVEL  |
+| 02      |  TREBLE     |  00~64  |  0.0~10.0               |  04,02  |  |  001010  |  P/TREBLE |
+| 03      |  MIDDLE     |  00~64  |  0.0~10.0               |  04,03  |  |  001011  |  P/MIDDLE |
+| 04      |  BASS       |  00~64  |  0.0~10.0               |  04,04  |  |  001100  |  P/BASS   |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 0E : FUZZ                                          |  |                      |
+|    Effect Type = 0F : OCTAFUZZ                                      |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  DRIVE      |  00~5A  |  1.0~10.0               |  04,00  |  |  001000  |  P/DRIVE  |
+| 01      |  LEVEL      |  00~64  |  0.0~10.0               |  04,01  |  |  001001  |  P/LEVEL  |
+| 02      |  TONE       |  00~5A  |  1.0~10.0               |  04,02  |  |  001010  |  P/TONE   |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+
+
+
+[ TABLE 1-2 ]  MODULATION EFFECT Parameter Structure                     +----------------------+
+                                                                         |  Expression Target   |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| Offset  |  PARAMETER  |  DATA   |  VALUE                  | PARA No.|  |  DATA    |  VALUE    |
+| [Dec]   |             |  [Hex]  |                         |  [Hex]  |  |  [BIN]   |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 00 : CLASSIC CHORUS                                |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED      |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,00  |  |  010000  |  M/SPEED  |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+|         |             |         |                         |         |  |          |           |
+| 03      |  MANUAL     |  00~5A  |  1.0~10.0               |  05,03  |  |  010010  |  M/MANUAL |
+| 04      |  MODE       |  00~02  |  1,2,3                  |  05,04  |  |          |           |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 01 : MULTI TAP CHORUS                              |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED      |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,00  |  |  010000  |  M/SPEED  |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+|         |             |         |                         |         |  |          |           |
+| 03      |  TIME       |  00~64  |  0.0~10.0               |  05,03  |  |          |           |
+|         |             |         |                         |         |  |          |           |
+| 05      |  MIX        |  00~64  |  0.0~10.0               |  05,05  |  |  010010  |  M/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 02 : CLASSIC FLANGER                               |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED      |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,00  |  |  010000  |  M/SPEED  |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+| 02      |  RESONANCE  |  00~64  |  0.0~10.0               |  05,02  |  |  010010  |  M/RESO   |
+| 03      |  MANUAL     |  00~5A  |  1.0~10.0               |  05,03  |  |  010011  |  M/MANUAL |
+| 04      |  OFFSET     |  00~64  |  0.0~10.0               |  05,04  |  |          |           |
+| 05      |  MIX        |  00~64  |  0.0~10.0               |  05,05  |  |  010100  |  M/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 03 : BI CHORUS                                     |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED1     |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,00  |  |  010000  |  M/SPEED1 |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+| 02      |  RESONANCE  |  00~64  |  0.0~10.0               |  05,02  |  |  010010  |  M/RESO   |
+| 03      |  SPEED2     |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,03  |  |  010011  |  M/SPEED2 |
+| 04      |  MODE       |  00~03  |  S,P1,P2,P3             |  05,04  |  |          |           |
+| 05      |  MIX        |  00~64  |  0.0~10.0               |  05,05  |  |  010100  |  M/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 04 : DUO PHASE                                     |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED1     |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,00  |  |  010000  |  M/SPEED1 |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+| 02      |  RESONANCE  |  00~64  |  0.0~10.0               |  05,02  |  |  010010  |  M/RESO   |
+| 03      |  SPEED2     |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,03  |  |  010011  |  M/SPEED2 |
+| 04      |  MODE       |  00~04  |  S1,S2,P1,P2,P3         |  05,04  |  |          |           |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 05 : TEXTREM                                       |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED      |  32~64  |  1.0~10.0 [Hz]     (*4) |  05,00  |  |  001000  |  M/SPEED  |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+|         |             |         |                         |         |  |          |           |
+| 04      |  SPREAD     |  00~64  |  0.0~10.0               |  05,04  |  |          |           |
+| 05      |  LEVEL      |  00~5A  |  1.0~10.0               |  05,05  |  |  010010  |  M/LEVEL  |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 06 : ROTARY                                        |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED1     |  2D~64  |  0.8~10.0 [Hz]     (*4) |  05,00  |  |  010000  |  M/SPEED1 |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+|         |             |         |                         |         |  |          |           |
+| 03      |  SPEED2     |  2D~64  |  0.8~10.0 [Hz]     (*4) |  05,03  |  |  010010  |  M/SPEED2 |
+| 04      |  ACCEL      |  00~5A  |  1.0~10.0               |  05,04  |  |  010011  |  M/ACCEL  |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 07 : PITCH SHIFTER                                 |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  PITCH      |  00~30  |  -24~24 [x100cent]      |  05,00  |  |  010000  |  M/PITCH  |
+| 01      |  FINE       |  00~64  |  -50~50 [cent]          |  05,01  |  |  010001  |  M/FINE   |
+|         |             |         |                         |         |  |          |           |
+| 03      |  TRACKING   |  05~4B  |  10~150 [ms] (2ms step) |  05,03  |  |          |           |
+| 04      |  DIRECT     |  00~64  |  0.0~10.0               |  05,04  |  |  010010  |  M/DIRECT |
+| 05      |  EFFECT     |  00~64  |  0.0~10.0               |  05,05  |  |  010011  |  M/EFFECT |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 08 : MOD DELAY                                     |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  SPEED      |  00~64  |  0.1~10.0 [Hz]     (*4) |  05,00  |  |  010000  |  M/SPEED  |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  05,02  |  |  010010  |  M/FBACK  |
+| 03      |  TIME       |  00~5A  |  1.0~10.0               |  05,03  |  |  010011  |  M/TIME   |
+| 04      |  MODE       |  00~02  |  1,2,3                  |  05,04  |  |          |           |
+| 05      |  MIX        |  00~64  |  0.0~10.0               |  05,05  |  |  010100  |  M/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 09 : FILTRON                                       |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  ATTACK     |  00~5A  |  1.0~10.0               |  05,00  |  |  010000  |  M/ATTACK |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+| 02      |  RESONANCE  |  00~64  |  0.0~10.0               |  05,02  |  |  010010  |  M/RESO   |
+| 03      |  MANUAL     |  00~5A  |  1.0~10.0               |  05,03  |  |  010011  |  M/MANUAL |
+| 04      |  POLARITY   |  00,01  |  UP,DOWN                |  05,04  |  |          |           |
+| 05      |  SENS       |  00~64  |  0.0~10.0               |  05,05  |  |  010100  |  M/SENS   |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 0A : TALK MOD                                      |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  ATTACK     |  00~5A  |  1.0~10.0               |  05,00  |  |  010000  |  M/ATTACK |
+| 01      |  DEPTH      |  00~64  |  0.0~10.0               |  05,01  |  |  010001  |  M/DEPTH  |
+| 02      |  TYPE       |  00~09  |  A-E~O-U                |  05,02  |  |          |           |
+| 03      |  MANUAL     |  00~5A  |  1.0~10.0               |  05,03  |  |  010010  |  M/MANUAL |
+| 04      |  POLARITY   |  00,01  |  UP,DOWN                |  05,04  |  |          |           |
+| 05      |  SENS       |  00~64  |  0.0~10.0               |  05,05  |  |  010011  |  M/SENS   |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+
+
+
+[ TABLE 1-3 ]  DELAY EFFECT Parameter Structure                          +----------------------+
+                                                                         |  Expression Target   |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| Offset  |  PARAMETER  |  DATA   |  VALUE                  | PARA No.|  |  DATA    |  VALUE    |
+| [Dec]   |             |  [Hex]  |                         |  [Hex]  |  |  [BIN]   |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 00 : ECHO PLUS                                     |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  1A~7D0 |  26~2000 [ms]           |  06,00  |  |  011001  |  D/TIME   |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011010  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011011  |  D/TONE   |
+|         |             |         |                         |         |  |          |           |
+| 05      |  LO DAMP    |  00~64  |  0.0~10.0               |  06,04  |  |  011100  |  D/LODAMP |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011101  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 01 : MULTI HEAD                                    |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  01~7D0 |  1~2000 [ms]            |  06,00  |  |          |           |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011001  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011010  |  D/TONE   |
+|         |             |         |                         |         |  |          |           |
+| 05      |  MODE       |  00~04  |  1,2,3,4,5              |  06,04  |  |          |           |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011011  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 02 : ANALOG DELAY                                  |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  01~7D0 |  1~2000 [ms]            |  06,00  |  |  011001  |  D/TIME   |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011010  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011011  |  D/TONE   |
+|         |             |         |                         |         |  |          |           |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011100  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 03 : MOD DELAY                                     |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  03~7D0 |  3~2000 [ms]            |  06,00  |  |  011001  |  D/TIME   |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011010  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011011  |  D/TONE   |
+|         |             |         |                         |         |  |          |           |
+| 05      |  SPEED      |  00~64  |  0.1~10.0 [Hz]     (*4) |  06,04  |  |  011100  |  D/SPEED  |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011101  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 04 : SWEEP DELAY                                   |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  1A~7D0 |  26~2000 [ms]           |  06,00  |  |  011001  |  D/TIME   |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011010  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011011  |  D/TONE   |
+|         |             |         |                         |         |  |          |           |
+| 05      |  SENS       |  00~64  |  0.0~10.0               |  06,04  |  |  011100  |  D/SENS   |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011101  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 05 : STEREO DELAY                                  |  |                      |
+|    Effect Type = 06 : CROSS DELAY                                   |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  01~FA0 |  1~4000 [ms]            |  06,00  |  |          |           |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011001  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011010  |  D/TONE   |
+| 04      |  DUCKING    |  00~64  |  0.0~10.0               |  06,03  |  |  011011  |  D/DUCK   |
+|         |             |         |                         |         |  |          |           |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011100  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 07 : 2TAP DELAY                                    |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  01~FA0 |  1~4000 [ms]            |  06,00  |  |          |           |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011001  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011010  |  D/TONE   |
+| 04      |  DUCKING    |  00~64  |  0.0~10.0               |  06,03  |  |  011011  |  D/DUCK   |
+| 05      |  TAP TIME   |  00~64  |  0.0~10.0               |  06,04  |  |          |           |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011100  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 08 : RHYTHM DELAY                                  |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       |  01~FA0 |  1~4000 [ms]            |  06,00  |  |          |           |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011001  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011010  |  D/TONE   |
+| 04      |  DUCKING    |  00~64  |  0.0~10.0               |  06,03  |  |  011011  |  D/DUCK   |
+| 05      |  RHYTHM     |  00~0A  |  1~11                   |  06,04  |  |          |           |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011100  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 09 : HOLD DELAY                                    |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       | 01~1F40 |  1~8000 [ms]            |  06,00  |  |          |           |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011001  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011010  |  D/TONE   |
+|         |             |         |                         |         |  |          |           |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |  011011  |  D/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 0A : REVERSE DELAY                                 |  |                      |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00~01   |  TIME       | 1A~1F40 |  26~8000 [ms]           |  06,00  |  |          |           |
+| 02      |  FEEDBACK   |  00~64  |  0.0~10.0               |  06,01  |  |  011001  |  D/FBACK  |
+| 03      |  TONE       |  00~5A  |  1.0~10.0               |  06,02  |  |  011010  |  D/TONE   |
+|         |             |         |                         |         |  |          |           |
+| 06      |  MIX        |  00~64  |  0.0~10.0               |  06,05  |  |          |           |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+
+
+
+[ TABLE 1-4 ]  REVERB EFFECT Parameter Structure                         +----------------------+
+                                                                         |  Expression Target   |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| Offset  |  PARAMETER  |  DATA   |  VALUE                  | PARA No.|  |  DATA    |  VALUE    |
+| [Dec]   |             |  [Hex]  |                         |  [Hex]  |  |  [BIN]   |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+|    Effect Type = 00 : SLAP                                          |  |          |           |
+|    Effect Type = 01 : SPRING                                        |  |          |           |
+|    Effect Type = 02 : BOUNCE                                        |  |          |           |
+|    Effect Type = 03 : PLATE                                         |  |          |           |
+|    Effect Type = 04 : GARAGE                                        |  |          |           |
+|    Effect Type = 05 : CHAMBER                                       |  |          |           |
+|    Effect Type = 06 : CANYON                                        |  |          |           |
+|    Effect Type = 07 : ROOM                                          |  |          |           |
+|    Effect Type = 08 : STUDIO                                        |  |          |           |
+|    Effect Type = 09 : HALL                                          |  |          |           |
+|    Effect Type = 0A : ARENA                                         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+| 00      |  TIME       |  00~5A  |  1.0~10.0               |  07,00  |  |  100001  |  R/TIME   |
+| 01      |  LO DAMP    |  00~64  |  0.0~10.0               |  07,01  |  |  100010  |  R/LODAMP |
+| 02      |  HI DAMP    |  00~64  |  0.0~10.0               |  07,02  |  |  100011  |  R/HIDAMP |
+| 03      |  PRE DLY    |  00~64  |  0~70 [ms]              |  07,03  |  |          |           |
+|         |             |         |                         |         |  |          |           |
+| 05      |  MIX        |  00~64  |  0.0~10.0               |  07,05  |  |  100100  |  R/MIX    |
+|         |             |         |                         |         |  |          |           |
++---------+-------------+---------+-------------------------+---------+  +----------+-----------+
+
+
+
+[ TABLE 1-5 ]  AMP Type List
+
++---------+-----------------------+
+| DATA    |  AMP Type             |
+| [Hex]   |                       |
++---------+-----------------------+
+| 00      |  AC15                 |
+| 01      |  AC15TB               |
+| 02      |  AC30                 |
+| 03      |  AC30TB               |
+| 04      |  UK BLUES             |
+| 05      |  UK 68P               |
+| 06      |  UK '80S              |
+| 07      |  UK '90S              |
+| 08      |  UK MODERN            |
+| 09      |  US MODERN            |
+| 0A      |  US HIGAIN            |
+| 0B      |  BOUTIQUE OD          |
+| 0C      |  BOUTIQUE CL          |
+| 0D      |  BLACK 2x12           |
+| 0E      |  TWEED 1x12           |
+| 0F      |  TWEED 4x10           |
++---------+-----------------------+
+
+
+
+[ TABLE 1-6 ]  CABINET Type List
+
++---------+-----------------------+
+| DATA    |  CABINET Type         |
+| [Hex]   |                       |
++---------+-----------------------+
+| 00      |  TWEED 1x8            |
+| 01      |  TWEED 1x12           |
+| 02      |  TWEED 4x10           |
+| 03      |  BLACK 2x10           |
+| 04      |  BLACK 2x12           |
+| 05      |  VOX AC15             |
+| 06      |  VOX AC30             |
+| 07      |  VOX AD120VTX         |
+| 08      |  UK H30 4x12          |
+| 09      |  UK T75 4x12          |
+| 0A      |  US V30 4x12          |
++---------+-----------------------+
+
+
+
+[ TABLE 1-7 ]  EXPRESSION PEDAL Target List
+
++---------+----------------------------------------------+-------------------------------------+
+| DATA    |  Target                                      |  TARGET RANGE                       |
+| [Bin]   |                                              |  DATA[Hex] : VALUE                  |
++---------+----------------------------------------------+-------------------------------------+
+| 000000  |  --OFF--    No Target                        |                                     |
+| 000001  |  VOLUME     Volume Pedal                     |  00~64 : 0.0~10.0                   |
++---------+----------------------------------------------+-------------------------------------+
+| 001nnn  |  P/??????   PEDAL Parameter      (TABLE 1-1) |    Same as Parameter Value Range    |
++---------+----------------------------------------------+-------------------------------------+
+| 010nnn  |  M/??????   MODULATION Parameter (TABLE 1-2) |    Same as Parameter Value Range    |
++---------+----------------------------------------------+-------------------------------------+
+| 011000  |  D/INPUT    DELAY Input Level                |  00~64 : 0.0~10.0                   |
++---------+----------------------------------------------+-------------------------------------+
+| 011nnn  |  D/??????   DELAY Parameter      (TABLE 1-3) |    Same as Parameter Value Range    |
++---------+----------------------------------------------+-------------------------------------+
+| 100000  |  R/INPUT    REVERB Input Level               |  00~64 : 0.0~10.0                   |
++---------+----------------------------------------------+-------------------------------------+
+| 100nnn  |  R/??????   REVERB Parameter     (TABLE 1-4) |    Same as Parameter Value Range    |
++---------+----------------------------------------------+-------------------------------------+
+| 101000  |  A/GAIN     AMP GAIN                         |  00~64 : 0.0~10.0                   |
+| 101001  |  A/VRGAIN   AMP VR GAIN                      |  00~64 : 0.0~10.0                   |
++---------+----------------------------------------------+-------------------------------------+
+
+
+
+[ TABLE 1-8 ]  CONTROL PEDAL Target List
+
++---------+---------------------------------------+
+| DATA    |  Target                               |
+| [Hex]   |                                       |
++---------+---------------------------------------+
+| 00      |   I/OnOFF   INSERT On/Off             |
+| 01      |   P/OnOFF   PEDAL On/Off              |
+| 02      |   A/OnOFF   AMP On/Off                |
+| 03      |  AC/OnOFF   AMP&CABINET On/Off        |
+| 04      |   C/OnOFF   CABINET On/Off            |
+| 05      |   M/OnOFF   MODULATION On/Off         |
+| 06      |   D/OnOFF   DELAY On/Off              |
+| 07      |   R/OnOFF   REVERB On/Off             |
+| 08      |  MOD TAP    MODULATION TAP (SPEED)    |
+| 09      |  DLY TAP    DELAY TAP (TIME)          |
+| 0A      |  FLN TRIG   FLANGER (TRIGGER)         |
+| 0B      |  ROT SPD    ROTARY (SPEED SW)         |
+| 0C      |  HOLD DLY   HOLD DELAY (HOLD)         |
++---------+---------------------------------------+
+
+
+
+ *3 :  DATA[Hex]   VALUE
+       00          1/6
+       01          1/4
+       02          1/3
+       03          1/2
+       04          2/3
+       05          3/4
+       06           1
+       07          4/3
+       08          3/2
+       09           2
+       0A           3
+       0B           4
+
+
+ *4 :  DATA[Hex]   VALUE[Hz]
+       00~09       0.100 ~ 0.145 (0.005 step)
+       0A~18       0.15  ~ 0.29  (0.01 step)
+       19~27       0.30  ~ 0.58  (0.02 step)
+       28~31       0.60  ~ 0.96  (0.04 step)
+       32~3B       1.00  ~ 1.45  (0.05 step)
+       3C~4A       1.5   ~ 2.9   (0.1 step)
+       4B~59       3.0   ~ 5.8   (0.2 step)
+       5A~63       6.0   ~ 9.6   (0.4 step)
+       64         10.0
+
+
+
+[ TABLE 2 ]  GLOBAL PARAMETERS
+
+ No.       : Address in the GLOBAL DUMP DATA.
+ PARA No.  : Parameter ID, SUB ID for PARAMETER CHANGE.
++---------+-------------------------+---------+------------------------------+---------+
+| No.     |  PARAMETER              |  DATA   |  VALUE                       | PARA No.|
+| [Dec]   |                         |  [Hex]  |                              |  [Hex]  |
++---------+-------------------------+---------+------------------------------+---------+
+| 00  b0~3|  MIDI Channel           |   0~F   |  1~16                        |  40,00  |
+|    -----+-------------------------+---------+------------------------------+---------+
+|     b4~7|      (Reserved)         |         |                              |         |
++---------+-------------------------+---------+------------------------------+---------+
+| 01  b0  |  MIDI ProgChg Output    |  00,01  |  Off, On                     |  41,00  |
+|    -----+-------------------------+---------+------------------------------+---------+
+|     b1  |  MIDI CtrlChg In/Out    |  00,01  |  Off, On                     |  41,01  |
+|    -----+-------------------------+---------+------------------------------+---------+
+|     b2  |  MIDI SysEx Output      |  00,01  |  Off, On                     |  41,02  |
+|    -----+-------------------------+---------+------------------------------+---------+
+|     b3~4|      (Reserved)         |         |                              |         |
+|    -----+-------------------------+---------+------------------------------+---------+
+|     b5  |  EXP Pedal Ctrl Init    |  00,01  |  Off, On                     |  41,05  |
+|    -----+-------------------------+---------+------------------------------+---------+
+|     b6~7|      (Reserved)         |         |                              |         |
++---------+-------------------------+---------+------------------------------+---------+
+| 02      |  CC# for EXP  Pedal     | 00,1~60 |  Off, CC00~CC95              |  42,00  |
++---------+-------------------------+---------+------------------------------+---------+
+| 03      |  CC# for CONTROL Pedal  | 00,1~60 |  Off, CC00~CC95              |  42,02  |
++---------+-------------------------+---------+------------------------------+---------+
+| 04      |  CC# for PEDAL On/Off   | 00,1~60 |  Off, CC00~CC95              |  42,03  |
++---------+-------------------------+---------+------------------------------+---------+
+| 05      |  CC# for MOD On/Off     | 00,1~60 |  Off, CC00~CC95              |  42,04  |
++---------+-------------------------+---------+------------------------------+---------+
+| 06      |  CC# for DELAY On/Off   | 00,1~60 |  Off, CC00~CC95              |  42,05  |
++---------+-------------------------+---------+------------------------------+---------+
+| 07      |  CC# for REVERB On/Off  | 00,1~60 |  Off, CC00~CC95              |  42,06  |
++---------+-------------------------+---------+------------------------------+---------+
+| 08      |  CC# for INSERT On/Off  | 00,1~60 |  Off, CC00~CC95              |  42,07  |
++---------+-------------------------+---------+------------------------------+---------+
+| 09      |  CC# for AMP On/Off     | 00,1~60 |  Off, CC00~CC95              |  42,09  |
++---------+-------------------------+---------+------------------------------+---------+
+| 0A      |  CC# for CAB On/Off     | 00,1~60 |  Off, CC00~CC95              |  42,0A  |
++---------+-------------------------+---------+------------------------------+---------+
+| 0B      |  Output Select          |  00~04  |  AP1,AP2,AP3,Ln1,Ln2         |  43,01  |
++---------+-------------------------+---------+------------------------------+---------+
+| 0C      |  EQ Trim                |  00~64  |  -10.0~0.0~10.0              |  43,02  |
++---------+-------------------------+---------+------------------------------+---------+
+| 0D      |  EQ Lo Gain             |  00~64  |  -10.0~0.0~10.0              |  43,03  |
++---------+-------------------------+---------+------------------------------+---------+
+| 0E      |  EQ Mid Freq            |  00~04  |  1~5                         |  43,04  |
++---------+-------------------------+---------+------------------------------+---------+
+| 0F      |  EQ Mid Gain            |  00~64  |  -10.0~0.0~10.0              |  43,05  |
++---------+-------------------------+---------+------------------------------+---------+
+| 10      |  EQ Hi Gain             |  00~64  |  -10.0~0.0~10.0              |  43,06  |
++---------+-------------------------+---------+------------------------------+---------+
+| 11      |  DigitalOut Level       |  00~04  |  -12,-6,0,6,12 [dB]          |  43,00  |
++---------+-------------------------+---------+------------------------------+---------+

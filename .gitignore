@@ -1,0 +1,9 @@
+node_modules/
+dist/
+
+# Korg's original software and data aren't redistributed: the installer, everything
+# extracted from it (SeTnLbSE.EXE, factory presets, manuals, bitmaps) and the
+# official Mac editor disk images.
+original/
+extracted/
+reference/mac/

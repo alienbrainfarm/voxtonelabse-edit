@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ToneLab SE Editor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-vox">VOX</span> <span class="brand-name">ToneLab<sup>SE</sup> Editor</span></div>
+  <div class="midi-setup">
+    <label>MIDI In <select id="midi-in"></select></label>
+    <label>MIDI Out <select id="midi-out"></select></label>
+    <label>Ch <select id="midi-ch"></select></label>
+    <button id="btn-connect" class="primary">Connect</button>
+    <span id="status" class="status off">Not connected</span>
+  </div>
+  <div class="file-actions">
+    <button id="btn-open" title="Open a .TLP program set or .TLG global file">Open…</button>
+    <button id="btn-prefs" title="Preferences">⚙</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="panel" id="panel" aria-label="Edit window">
+    <div class="row row-top">
+      <div class="block name-block">
+        <div class="lcd name-lcd"><input id="prog-name" maxlength="8" spellcheck="false" aria-label="Program name"><span class="name-tag">ToneLab<sup>SE</sup></span></div>
+        <div class="edit-source" id="edit-source">Edit buffer</div>
+      </div>
+      <div class="block insert-block">
+        <div class="block-title">INSERT</div>
+        <div class="lcd small"><button class="lamp" id="sw-insert" aria-label="Insert on/off"></button><span>BYPASS / ON</span></div>
+      </div>
+      <div class="block pedal-block">
+        <div class="block-title">PEDAL</div>
+        <div class="lcd"><button class="lamp" id="sw-pedal" aria-label="Pedal on/off"></button><select id="pedal-type"></select></div>
+        <div class="knobs" id="pedal-knobs"></div>
+      </div>
+    </div>
+
+    <div class="row amp-row">
+      <div class="block amp-block">
+        <div class="amp-head">
+          <div class="chan" data-ch="A">
+            <span class="chan-title">AMP</span><span class="chan-title">CABINET</span>
+            <button class="ch-tab" data-ch="A">A ch</button>
+            <div class="lcd"><button class="lamp" id="sw-amp-A" aria-label="Amp on/off"></button><select id="amp-A"></select></div>
+            <div class="lcd"><button class="lamp" id="sw-cab-A" aria-label="Cabinet on/off"></button><select id="cab-A"></select></div>
+          </div>
+          <div class="chan" data-ch="B">
+            <button class="ch-tab" data-ch="B">B ch</button>
+            <span class="chan-title">AMP</span><span class="chan-title">CABINET</span>
+            <div class="lcd"><button class="lamp" id="sw-amp-B" aria-label="Amp on/off"></button><select id="amp-B"></select></div>
+            <div class="lcd"><button class="lamp" id="sw-cab-B" aria-label="Cabinet on/off"></button><select id="cab-B"></select></div>
+          </div>
+        </div>
+        <div class="knobs" id="amp-knobs"></div>
+        <div class="amp-note" id="amp-note"></div>
+      </div>
+    </div>
+
+    <div class="row chain-row">
+      <div class="lcd wide"><span class="lcd-title">CHAIN</span><select id="chain"></select></div>
+      <div class="lcd wide"><span class="lcd-title">CONTROL</span><select id="control"></select><span class="lcd-title">FACTOR</span><select id="factor"></select></div>
+    </div>
+
+    <div class="row fx-row">
+      <div class="block fx-block">
+        <div class="fx-tabs">
+          <div class="fx-tab" data-fx="mod"><div class="block-title">MODULATION</div><div class="lcd"><button class="lamp" id="sw-mod" aria-label="Modulation on/off"></button><select id="mod-type"></select></div></div>
+          <div class="fx-tab" data-fx="delay"><div class="block-title">DELAY</div><div class="lcd"><button class="lamp" id="sw-delay" aria-label="Delay on/off"></button><select id="delay-type"></select></div></div>
+          <div class="fx-tab" data-fx="reverb"><div class="block-title">REVERB</div><div class="lcd"><button class="lamp" id="sw-reverb" aria-label="Reverb on/off"></button><select id="reverb-type"></select></div></div>
+        </div>
+        <div class="knobs" id="fx-knobs"></div>
+      </div>
+      <div class="block exp-block">
+        <div class="block-title">EXPRESSION 1</div>
+        <div class="lcd"><select id="exp1-target"></select></div>
+        <div class="knobs" id="exp1-knobs"></div>
+      </div>
+      <div class="block exp-block">
+        <div class="block-title">EXPRESSION 2</div>
+        <div class="lcd"><select id="exp2-target"></select></div>
+        <div class="knobs" id="exp2-knobs"></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="sidebar" aria-label="Librarian">
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <div class="tab-body" id="tab-body"></div>
+  </aside>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog id="dialog"><form method="dialog" id="dialog-form"></form></dialog>
+<input type="file" id="file-input" accept=".tlp,.TLP,.tlg,.TLG" hidden>
+
+<script src="js/sysex.js"></script>
+<script src="js/model.js"></script>
+<script src="js/params.js"></script>
+<script src="js/convert.js"></script>
+<script src="js/files.js"></script>
+<script src="js/simulator.js"></script>
+<script src="js/midi.js"></script>
+<script src="js/knob.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
