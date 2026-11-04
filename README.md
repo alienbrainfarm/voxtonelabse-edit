@@ -23,9 +23,13 @@ It does what the original did:
 
 You need a USB-MIDI interface, with MIDI cables to the ToneLab SE's MIDI IN and OUT.
 
-### Option A: download the app
+### Option A: use it in the browser (recommended)
 
-Get the archive for your computer from the [latest release](https://github.com/alienbrainfarm/voxtonelabse-edit/releases/latest). None of the builds are signed with a paid developer certificate, so each system complains once on first launch:
+Open <https://alienbrainfarm.github.io/voxtonelabse-edit/> in **Google Chrome** or **Microsoft Edge** on any Mac, Windows or Linux computer, and allow MIDI access when asked. Nothing is installed and nothing leaves your computer; the page talks to the pedal directly through the browser's Web MIDI. Safari has no Web MIDI, so it won't work there. The same page is `app/index.html` in this repo if you would rather open it locally.
+
+### Option B: download the app
+
+If you would rather have a desktop app, get the archive for your computer from the [latest release](https://github.com/alienbrainfarm/voxtonelabse-edit/releases/latest). None of the builds are signed with a paid developer certificate, so each system complains once on first launch:
 
 - **macOS** (`macOS-arm64` for Apple Silicon, `macOS-x64` for Intel): unzip, drag `ToneLab SE Editor.app` into `/Applications`. macOS blocks it the first time. Open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**. Or, in Terminal:
 
@@ -41,7 +45,7 @@ Get the archive for your computer from the [latest release](https://github.com/a
   sudo chown root:root chrome-sandbox && sudo chmod 4755 chrome-sandbox
   ```
 
-### Option B: build it yourself
+### Option C: build it yourself
 
 1. Install Node.js from <https://nodejs.org> (LTS), or with `brew install node` on a Mac.
 2. In a terminal, run:
@@ -54,10 +58,6 @@ Get the archive for your computer from the [latest release](https://github.com/a
    ```
 
 This writes an archive for the machine you are on into `dist/`, exactly like the ones on the releases page. On a Mac, `bash scripts/build-mac.sh` does the same without the archive and leaves the app ready to drag into `/Applications`.
-
-### Option C: use it in the browser
-
-Open <https://alienbrainfarm.github.io/voxtonelabse-edit/> in **Google Chrome** or **Microsoft Edge** and allow MIDI access when asked. Nothing is installed and nothing leaves your computer; the page talks to the pedal directly through the browser's Web MIDI. Safari has no Web MIDI, so it won't work there. The same page is `app/index.html` in this repo if you would rather open it locally.
 
 ### First connection
 
