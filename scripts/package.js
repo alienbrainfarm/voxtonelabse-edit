@@ -11,9 +11,10 @@ packager({
   name: 'ToneLab SE Editor',
   platform, arch, out,
   overwrite: true,
-  icon: path.join(__dirname, '..', 'electron', platform === 'darwin' ? 'icon.icns' : 'icon.png'),
+  icon: path.join(__dirname, '..', 'electron', { darwin: 'icon.icns', win32: 'icon.ico' }[platform] || 'icon.png'),
   appBundleId: 'local.tonelabse.editor',
   appCategoryType: 'public.app-category.music',
+  win32metadata: { CompanyName: 'alienbrainfarm', FileDescription: 'ToneLab SE Editor', ProductName: 'ToneLab SE Editor' },
   ignore: p => p !== '' && !KEEP.some(re => re.test(p.split(path.sep).join('/'))),
 }).then(paths => console.log('Wrote ' + paths.join(', ')))
   .catch(e => { console.error(e); process.exit(1); });

@@ -23,34 +23,41 @@ It does what the original did:
 
 You need a USB-MIDI interface, with MIDI cables to the ToneLab SE's MIDI IN and OUT.
 
-### Option A: download the app (Apple Silicon)
+### Option A: download the app
 
-1. Download the zip from the [latest release](https://github.com/alienbrainfarm/voxtonelabse-edit/releases/latest) and unzip it.
-2. Drag `ToneLab SE Editor.app` into `/Applications`.
-3. The app is ad-hoc signed, not notarised, so macOS blocks it the first time. Open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**. Or, in Terminal:
+Get the archive for your computer from the [latest release](https://github.com/alienbrainfarm/voxtonelabse-edit/releases/latest). None of the builds are signed with a paid developer certificate, so each system complains once on first launch:
 
-   ```bash
-   xattr -d com.apple.quarantine "/Applications/ToneLab SE Editor.app"
-   ```
+- **macOS** (`macOS-arm64` for Apple Silicon, `macOS-x64` for Intel): unzip, drag `ToneLab SE Editor.app` into `/Applications`. macOS blocks it the first time. Open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**. Or, in Terminal:
 
-### Option B: build the app (Intel Macs, or to build from source)
+  ```bash
+  xattr -d com.apple.quarantine "/Applications/ToneLab SE Editor.app"
+  ```
 
-1. Install Node.js from <https://nodejs.org> (LTS), or with `brew install node`.
-2. In Terminal, run:
+- **Windows** (`Windows-x64`): unzip anywhere, open the folder and run `ToneLab SE Editor.exe`. SmartScreen shows "Windows protected your PC": click **More info**, then **Run anyway**. Windows' own class-compliant USB-MIDI driver is enough; no extra driver is needed.
+
+- **Linux** (`Linux-x64`): extract and run `./ToneLab\ SE\ Editor` from the extracted folder. MIDI goes through ALSA, so any interface that shows up in `aconnect -l` works. On distributions that restrict unprivileged user namespaces (Ubuntu 24.04 and later among them) Electron refuses to start until its sandbox helper is made setuid root, once, from inside the extracted folder:
+
+  ```bash
+  sudo chown root:root chrome-sandbox && sudo chmod 4755 chrome-sandbox
+  ```
+
+### Option B: build it yourself
+
+1. Install Node.js from <https://nodejs.org> (LTS), or with `brew install node` on a Mac.
+2. In a terminal, run:
 
    ```bash
    git clone https://github.com/alienbrainfarm/voxtonelabse-edit.git
    cd voxtonelabse-edit
-   bash scripts/build-mac.sh
+   npm install
+   npm run build
    ```
 
-3. Drag `dist/ToneLab SE Editor-darwin-arm64/ToneLab SE Editor.app` into `/Applications`.
+This writes an archive for the machine you are on into `dist/`, exactly like the ones on the releases page. On a Mac, `bash scripts/build-mac.sh` does the same without the archive and leaves the app ready to drag into `/Applications`.
 
-The script builds an Apple Silicon (arm64) app, or an Intel one on an Intel Mac. It gives the app an ad-hoc code signature so macOS will run it.
+### Option C: use it in the browser
 
-### Option C: no install
-
-Open `app/index.html` in **Google Chrome** or **Microsoft Edge**, and allow MIDI access when asked. Safari has no Web MIDI, so it won't work there.
+Open <https://alienbrainfarm.github.io/voxtonelabse-edit/> in **Google Chrome** or **Microsoft Edge** and allow MIDI access when asked. Nothing is installed and nothing leaves your computer; the page talks to the pedal directly through the browser's Web MIDI. Safari has no Web MIDI, so it won't work there. The same page is `app/index.html` in this repo if you would rather open it locally.
 
 ### First connection
 
@@ -81,7 +88,8 @@ app/            the editor (HTML/CSS/JS, no dependencies)
   js/midi.js      Web MIDI transport;  js/simulator.js  software ToneLab SE
   js/app.js       UI and librarian
 electron/       native app shell (grants Web MIDI + SysEx)
-scripts/        build-mac.sh, package.js
+scripts/        build.js (any platform, makes the release archive), build-mac.sh, package.js
+.github/        CI, release builds (on version tags) and the GitHub Pages deploy of app/
 tests/          node tests/run.js   (codec, parameter spec, files, conversion)
 docs/           reverse-engineering notes (see below)
 reference/docs/ Korg MIDI implementation documents, from VOX UK's download area via the Wayback Machine

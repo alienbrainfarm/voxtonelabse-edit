@@ -10,6 +10,7 @@
     "start": "electron .",
     "test": "node tests/run.js",
     "smoke": "electron . --smoke-test",
+    "build": "node scripts/build.js",
     "build:mac": "bash scripts/build-mac.sh"
   },
   "devDependencies": {

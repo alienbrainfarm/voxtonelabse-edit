@@ -1,0 +1,49 @@
+# Builds the editor for macOS, Windows and Linux when a version tag is pushed,
+# and attaches the archives to the GitHub Release for that tag.
+#
+#   npm version 1.1.0        # bumps package.json and creates tag v1.1.0
+#   git push --follow-tags
+#
+# To test a build before tagging, run `npm run build` on the machine itself.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest,   label: macOS,   targets: 'darwin arm64;darwin x64' }
+          - { os: windows-latest, label: Windows, targets: 'win32 x64' }
+          - { os: ubuntu-latest,  label: Linux,   targets: 'linux x64' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - run: npm test
+      - name: Build
+        shell: bash
+        run: |
+          IFS=';' read -ra TARGETS <<< "${{ matrix.targets }}"
+          for t in "${TARGETS[@]}"; do node scripts/build.js $t; done
+      - name: Attach to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # The three platform jobs race to create the release; whichever loses just uploads.
+          gh release create "$TAG" --title "ToneLab SE Editor ${TAG#v}" --generate-notes 2>/dev/null || true
+          gh release upload "$TAG" dist/*.zip dist/*.tar.gz --clobber

@@ -1,6 +1,6 @@
-// Electron shell: packages the web editor as a native macOS (Apple Silicon) app.
-// Chromium's Web MIDI sits on CoreMIDI, so any class-compliant USB-MIDI
-// interface the Mac sees will show up in the editor's MIDI Setup.
+// Electron shell: packages the web editor as a desktop app for macOS, Windows and Linux.
+// Chromium's Web MIDI sits on CoreMIDI, WinMM and ALSA respectively, so any
+// class-compliant USB-MIDI interface the system sees shows up in the editor.
 const { app, BrowserWindow, session, Menu, shell } = require('electron');
 const path = require('path');
 
