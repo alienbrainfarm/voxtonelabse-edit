@@ -23,13 +23,6 @@ jobs:
       - run: npm ci --no-fund --no-audit
       - run: npm test
       - run: npm audit --audit-level=moderate
-      - name: Configure Linux sandbox helper
-        run: |
-          # Electron downloads lazily; install before configuring its SUID helper.
-          node -e 'require("electron")'
-          sudo chown root:root node_modules/electron/dist/chrome-sandbox
-          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
-      - run: xvfb-run -a npm run smoke
 
   build:
     uses: ./.github/workflows/build.yml

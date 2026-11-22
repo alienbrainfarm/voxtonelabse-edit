@@ -28,6 +28,11 @@ jobs:
           cache: npm
       - run: npm ci --no-fund --no-audit
       - run: npm test
+      # Hosted Linux has no ALSA sequencer device. macOS provides CoreMIDI even
+      # without attached hardware, so exercise the real permission flow there.
+      - name: Electron security smoke test
+        if: runner.os == 'macOS'
+        run: npm run smoke
       - name: Build
         shell: bash
         env:
