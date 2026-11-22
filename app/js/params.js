@@ -29,7 +29,9 @@
     k0: { text: r => (r / 10).toFixed(1), parse: s => { const v = num(s); return v === null ? null : Math.round(v * 10); } },
     k1: { text: r => ((r + 10) / 10).toFixed(1), parse: s => { const v = num(s); return v === null ? null : Math.round(v * 10) - 10; } },
     hz: {
-      text: r => hzText(SPEED_HZ[r]),
+      // Dumps and EXP ranges can contain a value outside this type's table.
+      // Keep the raw value visible without inventing a frequency or changing it.
+      text: r => Number.isInteger(r) && r >= 0 && r < SPEED_HZ.length ? hzText(SPEED_HZ[r]) : String(r),
       parse: s => {
         const v = num(s); if (v === null) return null;
         let best = 0; SPEED_HZ.forEach((hz, i) => { if (Math.abs(hz - v) < Math.abs(SPEED_HZ[best] - v)) best = i; });

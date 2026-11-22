@@ -90,6 +90,36 @@ test('invalid effect types leave every program byte unchanged and do not throw',
   assert.strictEqual(prog[13], 2); assert.strictEqual(prog[15], 32); assert.strictEqual(prog[77] & 63, 8);
 });
 
+test('full-size dumps with unknown speed values display the raw value without crashing', () => {
+  const source = TL.SimulatedToneLab.initProgram('SECURITY');
+  source[22] = 0; // Classic Chorus SPEED uses the 0..100 frequency table.
+  source[23] = 255;
+  const reply = S.parse(S.msg.currentProgramDump(0, source));
+  const prog = Uint8Array.from(reply.data);
+  const speed = TL.params.MOD.types[prog[22]].params.find(prm => prm.o === 0);
+  assert.strictEqual(TL.params.fmtOf(speed).text(TL.model.get(prog, 23)), '255');
+  assert.strictEqual(prog[23], 255);
+});
+
+test('remote EXP ranges outside a speed table remain displayable while delay ranges retain milliseconds', () => {
+  const prog = TL.SimulatedToneLab.initProgram('SECURITY');
+  prog[13] = 4; // U-VIBE exposes P/SPEED at expression target 8.
+  prog[77] = 8;
+  const change = S.parse(S.msg.paramChange(0, 12, 1, 8000));
+  TL.model.applyRemote(prog, change.p1, change.p2, change.value);
+  const speedTarget = TL.params.expTargets(prog).find(t => t.code === (prog[77] & 63));
+  assert.strictEqual(TL.params.fmtOf(speedTarget.param).text(TL.model.get(prog, 78)), '8000');
+  assert.strictEqual(TL.model.get(prog, 78), 8000);
+
+  prog[31] = 0; // ECHO PLUS TIME supports expression values above 100.
+  prog[77] = 25;
+  const delayChange = S.parse(S.msg.paramChange(0, 12, 1, 2000));
+  TL.model.applyRemote(prog, delayChange.p1, delayChange.p2, delayChange.value);
+  const delayTarget = TL.params.expTargets(prog).find(t => t.code === (prog[77] & 63));
+  assert.strictEqual(TL.params.fmtOf(delayTarget.param).text(TL.model.get(prog, 78)), '2000 ms');
+  assert.strictEqual(TL.model.get(prog, 78), 2000);
+});
+
 test('invalid input cannot satisfy a pending request, emit events or reach the logger', async () => {
   const midi = new TL.Midi(), events = [], logs = [];
   midi.output = { send() {} }; // Hardware I/O is the only external dependency.
