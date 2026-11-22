@@ -14,7 +14,7 @@
     "build:mac": "bash scripts/build-mac.sh"
   },
   "devDependencies": {
-    "@electron/packager": "^18.3.6",
+    "@electron/packager": "^20.3.0",
     "electron": "^33.2.1"
   }
 }
