@@ -14,6 +14,9 @@
   const PROGRAM_SIZE = 92;
   const GLOBAL_SIZE = 16;
   const NUM_PROGRAMS = 96;
+  // All-data includes 96 programs, one dummy program, then global data (NOTE 5).
+  const ALL_DATA_SIZE = PROGRAM_SIZE * (NUM_PROGRAMS + 1) + GLOBAL_SIZE;
+  const MAX_MESSAGE_SIZE = 7 + packedLength(ALL_DATA_SIZE);
 
   const FUNC = {
     CUR_PROG_REQ: 0x10,
@@ -62,6 +65,41 @@
 
   function packedLength(n) { return n + Math.ceil(n / 7); }
 
+  // Check before copying, logging or unpacking. Web MIDI supplies Uint8Array;
+  // builders/simulator also use arrays. Do not consume arbitrary iterables.
+  function isByteMessage(bytes) {
+    if (!Array.isArray(bytes) && !(bytes instanceof Uint8Array)) return false;
+    if (bytes.length < 1 || bytes.length > MAX_MESSAGE_SIZE) return false;
+    for (let i = 0; i < bytes.length; i++) {
+      if (!Number.isInteger(bytes[i]) || bytes[i] < 0 || bytes[i] > 255) return false;
+    }
+    return true;
+  }
+
+  // TABLE 1/2 address and value envelopes. Knob/EXP limits depend on the
+  // current effect type, so accept their full supported range here.
+  function validParameter(p1, p2, value) {
+    switch (p1) {
+      case 0: return p2 <= 7 && value <= 127;
+      case 2: return (p2 <= 9 && value <= 1) || (p2 === 16 && value <= 5);
+      case 3: return p2 <= 7 && value < [16, 11, 11, 11, 16, 11, 16, 11][p2];
+      case 4:
+      case 5:
+      case 7: return p2 <= 5 && value <= 100;
+      case 6: return p2 <= 5 && value <= (p2 === 0 ? 8000 : 100);
+      case 8:
+      case 10: return p2 <= 7 && value <= (p2 === 7 ? 50 : 100);
+      case 12:
+      case 13: return p2 <= 2 && value <= (p2 === 0 ? 63 : 8000);
+      case 14: return p2 <= 1 && value <= 11;
+      case 0x40: return p2 === 0 && value <= 15;
+      case 0x41: return [0, 1, 2, 4, 5, 6].includes(p2) && value <= 1;
+      case 0x42: return p2 <= 8 && value <= 96;
+      case 0x43: return p2 === 1 && value <= 1;
+      default: return false;
+    }
+  }
+
   // Build a Korg/ToneLab SE message. extra: 0-2 address bytes after func.
   function build(channel, func, extra, data) {
     extra = extra || [];
@@ -90,9 +128,12 @@
 
   // Parse an incoming message. Returns null for anything that isn't ours.
   function parse(bytes) {
-    bytes = Array.from(bytes);
+    if (!isByteMessage(bytes) || bytes.length < 7) return null;
     if (bytes[0] !== 0xf0 || bytes[bytes.length - 1] !== 0xf7) return null;
+    for (let i = 1; i < bytes.length - 1; i++) if (bytes[i] > 0x7f) return null;
+    bytes = Array.prototype.slice.call(bytes);
     if (bytes[1] === 0x7e && bytes[3] === 0x06 && bytes[4] === 0x02) {
+      if (bytes.length !== 15 || bytes[2] > 15) return null;
       // Universal device inquiry reply: F0 7E 0n 06 02 42 <fam lo hi> <member lo hi> <ver x4> F7
       return {
         kind: 'inquiryReply',
@@ -109,40 +150,67 @@
     const func = bytes[5];
     const rest = bytes.slice(6, -1);
     const m = { channel, func, raw: bytes };
+    const programAddress = () => rest[0] === 0 || (rest[0] === 0x20 && rest[1] < NUM_PROGRAMS);
+    const writeAddress = () => rest.length === 2 && rest[0] === 0 && rest[1] < NUM_PROGRAMS;
     switch (func) {
       case FUNC.CUR_PROG_DUMP:
-        return Object.assign(m, { kind: 'currentProgram', data: unpack7(rest).slice(0, PROGRAM_SIZE) });
+        if (rest.length !== packedLength(PROGRAM_SIZE)) return null;
+        return Object.assign(m, { kind: 'currentProgram', data: unpack7(rest) });
       case FUNC.PROG_DUMP: {
+        if (!programAddress()) return null;
         const all = rest[0] === 0x00;
+        if (rest.length !== 2 + packedLength(PROGRAM_SIZE * (all ? NUM_PROGRAMS : 1))) return null;
         const data = unpack7(rest.slice(2));
         return all
-          ? Object.assign(m, { kind: 'allPrograms', data: data.slice(0, PROGRAM_SIZE * NUM_PROGRAMS) })
-          : Object.assign(m, { kind: 'program', number: rest[1], data: data.slice(0, PROGRAM_SIZE) });
+          ? Object.assign(m, { kind: 'allPrograms', data })
+          : Object.assign(m, { kind: 'program', number: rest[1], data });
       }
       case FUNC.GLOBAL_DUMP:
-        return Object.assign(m, { kind: 'global', data: unpack7(rest).slice(0, GLOBAL_SIZE) });
+        if (rest.length !== packedLength(GLOBAL_SIZE)) return null;
+        return Object.assign(m, { kind: 'global', data: unpack7(rest) });
       case FUNC.ALL_DATA_DUMP:
+        if (rest.length !== packedLength(ALL_DATA_SIZE)) return null;
         return Object.assign(m, { kind: 'allData', data: unpack7(rest) });
-      case FUNC.PARAM_CHANGE:
-        return Object.assign(m, {
-          kind: 'param', p1: rest[0], p2: rest[1], value: ((rest[2] & 0x7f) << 7) | (rest[3] & 0x7f),
-        });
+      case FUNC.PARAM_CHANGE: {
+        if (rest.length !== 4) return null;
+        const value = (rest[2] << 7) | rest[3];
+        if (!validParameter(rest[0], rest[1], value)) return null;
+        return Object.assign(m, { kind: 'param', p1: rest[0], p2: rest[1], value });
+      }
       case FUNC.PROG_CHANGE:
       case FUNC.MODE_DATA:
+        if (rest.length !== 2 || (rest[0] & 0x0f) !== 0 || (rest[0] & 0x30) === 0x30) return null;
+        if (func === FUNC.MODE_DATA && (rest[0] & 0x30) !== 0) return null;
+        // Program number is ignored by the protocol for mode-only changes.
+        if ((rest[0] & 0x30) !== 0x10 && rest[1] >= NUM_PROGRAMS) return null;
         // 0moo0000: m = 0 program select / 1 fx on-off mode; oo = 00 mode+program, 01 mode only, 10 program only
         return Object.assign(m, {
           kind: func === FUNC.MODE_DATA ? 'modeData' : 'programChange',
           mode: (rest[0] >> 6) & 1, option: (rest[0] >> 4) & 3, number: rest[1],
         });
-      case FUNC.DATA_LOAD_COMPLETED: return Object.assign(m, { kind: 'ack' });
-      case FUNC.DATA_LOAD_ERROR: return Object.assign(m, { kind: 'nak' });
-      case FUNC.DATA_FORMAT_ERROR: return Object.assign(m, { kind: 'formatError' });
-      case FUNC.WRITE_COMPLETED: return Object.assign(m, { kind: 'writeOk', number: rest[1] });
-      case FUNC.WRITE_ERROR: return Object.assign(m, { kind: 'writeError', number: rest[1] });
+      case FUNC.DATA_LOAD_COMPLETED: return rest.length === 0 ? Object.assign(m, { kind: 'ack' }) : null;
+      case FUNC.DATA_LOAD_ERROR: return rest.length === 0 ? Object.assign(m, { kind: 'nak' }) : null;
+      case FUNC.DATA_FORMAT_ERROR: return rest.length === 0 ? Object.assign(m, { kind: 'formatError' }) : null;
+      case FUNC.WRITE_COMPLETED: return writeAddress() ? Object.assign(m, { kind: 'writeOk', number: rest[1] }) : null;
+      case FUNC.WRITE_ERROR: return writeAddress() ? Object.assign(m, { kind: 'writeError', number: rest[1] }) : null;
+      // Requests are parsed by the simulator too; validate before it can index
+      // its program bank or change state. Keep their existing 'unknown' kind.
+      case FUNC.CUR_PROG_REQ:
+      case FUNC.GLOBAL_REQ:
+      case FUNC.ALL_DATA_REQ:
+      case FUNC.MODE_REQ:
+        if (rest.length !== 0) return null;
+        return Object.assign(m, { kind: 'unknown', data: rest });
+      case FUNC.PROG_REQ:
+        if (rest.length !== 2 || !programAddress()) return null;
+        return Object.assign(m, { kind: 'unknown', data: rest });
+      case FUNC.WRITE_REQ:
+        if (!writeAddress()) return null;
+        return Object.assign(m, { kind: 'unknown', data: rest });
       default:
         return Object.assign(m, { kind: 'unknown', data: rest });
     }
   }
 
-  TL.sysex = { FUNC, PROGRAM_SIZE, GLOBAL_SIZE, NUM_PROGRAMS, pack7, unpack7, packedLength, build, msg, parse };
+  TL.sysex = { FUNC, PROGRAM_SIZE, GLOBAL_SIZE, NUM_PROGRAMS, isByteMessage, pack7, unpack7, packedLength, build, msg, parse };
 })(window.TL = window.TL || {});

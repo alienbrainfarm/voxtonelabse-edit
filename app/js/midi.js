@@ -59,19 +59,22 @@
     }
 
     receive(data) {
-      const bytes = Array.from(data);
+      if (!TL.sysex.isByteMessage(data)) return;
+      const bytes = Array.prototype.slice.call(data);
       if (bytes[0] === 0xfe || bytes[0] === 0xf8) return; // active sensing / clock
-      if (this.log) this.log('in', bytes);
       let m;
       if (bytes[0] === 0xf0) {
         m = TL.sysex.parse(bytes);
         if (m && m.channel !== undefined && m.kind !== 'inquiryReply' && m.channel !== this.channel) return;
       } else if ((bytes[0] & 0xf0) === 0xc0) {
+        if (bytes.length !== 2 || bytes[1] >= TL.sysex.NUM_PROGRAMS) return;
         m = { kind: 'midiProgramChange', channel: bytes[0] & 0x0f, number: bytes[1] };
       } else if ((bytes[0] & 0xf0) === 0xb0) {
+        if (bytes.length !== 3 || bytes[1] > 0x7f || bytes[2] > 0x7f) return;
         m = { kind: 'cc', channel: bytes[0] & 0x0f, cc: bytes[1], value: bytes[2] };
       }
       if (!m) return;
+      if (this.log) this.log('in', bytes);
       for (let i = 0; i < this.waiters.length; i++) {
         const w = this.waiters[i];
         if (w.match(m)) {

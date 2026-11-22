@@ -40,8 +40,11 @@ if (platform === 'darwin') {
 } else if (platform === 'linux') {
   run('tar', ['-czf', archive, '-C', dist, path.basename(built)]);
 } else {
-  // bsdtar (macOS, Linux, and Windows 10+) writes a zip when the name ends in .zip.
-  run('tar', ['-a', '-cf', archive, '-C', dist, path.basename(built)]);
+  // Git Bash can put GNU tar before Windows' ZIP-capable bsdtar on PATH.
+  // Use the native executable explicitly so drive letters are not remote hosts.
+  const tar = process.platform === 'win32'
+    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+  run(tar, ['-a', '-cf', archive, '-C', dist, path.basename(built)]);
 }
 
 const mb = (fs.statSync(archive).size / 1048576).toFixed(0);

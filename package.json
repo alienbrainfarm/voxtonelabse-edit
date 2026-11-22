@@ -1,7 +1,7 @@
 {
   "name": "tonelab-se-editor",
   "productName": "ToneLab SE Editor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Editor/librarian for the VOX ToneLab SE, rebuilt from the original Korg SoundEditor for modern macOS (Apple Silicon).",
   "main": "electron/main.js",
   "private": true,
