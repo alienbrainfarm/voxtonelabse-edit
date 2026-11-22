@@ -1,0 +1,48 @@
+# Shared by PR checks and tagged releases. Builds receive no write credentials.
+name: Build packages
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: package (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, label: macOS, targets: 'darwin arm64;darwin x64' }
+          - { os: windows-latest, label: Windows, targets: 'win32 x64' }
+          - { os: ubuntu-latest, label: Linux, targets: 'linux x64' }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - run: npm test
+      - name: Build
+        shell: bash
+        env:
+          TARGETS: ${{ matrix.targets }}
+        run: |
+          IFS=';' read -ra targets <<< "$TARGETS"
+          for target in "${targets[@]}"; do
+            read -r platform arch <<< "$target"
+            node scripts/build.js "$platform" "$arch"
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: packages-${{ matrix.label }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7

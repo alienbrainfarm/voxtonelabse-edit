@@ -164,6 +164,8 @@
   // (InitXxxKnobsForType + ResetExpTargetsOnTypeChange): section on, knobs to
   // defaults, EXP pedals aimed at that section to OFF 0..100 (VOX WAH grabs EXP1).
   function applyTypeChange(prog, fx, type) {
+    // Validate before touching the type, enabled bit, knobs or EXP targets.
+    if (!Number.isInteger(type) || type < 0 || type >= fx.types.length) return false;
     const M = TL.model;
     const oldTargets = [1, 2].map(n => expTargets(prog).find(t => t.code === (prog[EXP[n].target] & 0x3f)));
     prog[fx.typeOffset] = type;
